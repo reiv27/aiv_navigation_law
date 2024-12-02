@@ -40,3 +40,7 @@ def find_vector_with_dir(point_1, point_2, l):
     dir = point_1 - point_2
     unit_dir = dir / np.linalg.norm(dir)
     return point_2 + unit_dir * l
+
+
+def saturation(x, min_val, max_val):
+    return np.clip(x, min_val, max_val)

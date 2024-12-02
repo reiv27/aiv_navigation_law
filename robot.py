@@ -34,6 +34,7 @@ class DubinsCar:
     mode_C = 0
     mode_G = 1
 
+
     def __init__(self, linear_velocity, angular_velocity, turning_radius, d) -> None:
         self.linear_velocity = linear_velocity
         self.angular_velocity = angular_velocity
@@ -58,7 +59,10 @@ class DubinsCar:
         self.x_path = []
         self.y_path = []
         self.theta_path = []
-        self.u = []
+        self.u_path = []
+        self.n = 1
+        self.v_A = self.disk.disk_center
+
     
     def init_pose(self, init_x, init_y, init_theta):
         self.x = init_x
@@ -110,7 +114,7 @@ class DubinsCar:
             self.lidar.lidar_closest_point,
             self.d + self.disk.R
         )
-        print(self.disk.disk_center)
+        # print(self.disk.disk_center)
     
     def update_disk_rays(self):
         # print(self.disk.R, self.d)
@@ -127,3 +131,55 @@ class DubinsCar:
         
         self.disk.min_disk_length = np.min(self.disk.disk_rays_lengths)
         self.disk.min_arg = np.argmin(self.disk.disk_rays_lengths)
+    
+    def calc_u_mode_C(self):
+        r = np.array([self.x, self.y])
+        # v = self.disk.disk_center
+        p = self.lidar.lidar_closest_point
+        dR = self.lidar.closest_distance - self.d
+        ddR = (((r-p) / np.linalg.norm(r-p)) @ self.e)[0]
+        print(f'Mode C | dR={dR} ddR={ddR} n*z*dR={self.n * 0.025 * dR} sgn={np.sign(ddR + self.n * 0.025 * dR)}', end=' ')
+        print(f'u={self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)}')
+        return self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)
+        # return self.angular_velocity * np.sign(ddR + self.n * 0.025 * vec_ops.saturation(dR, -0.1, 0.1))
+
+        # theta += u_input * dt
+        # self.e = np.array([[np.cos(theta)], [np.sin(theta)]])
+
+    def calc_u_mode_G(self):
+        r = np.array([self.x, self.y])
+        v = self.v_A
+        dR = self.turning_radius - np.linalg.norm(r - v)
+        ddR = (((v-r) / np.linalg.norm(v-r)) @ self.e)[0]
+        print(f'Mode G | dR={dR} ddR={ddR} n*z*dR={self.n * 0.025 * dR} sgn={np.sign(ddR + self.n * 0.025 * dR)}', end=' ')
+        print(f'u={self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)}')
+        return self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)
+        # return self.angular_velocity * np.sign(ddR + self.n * 0.025 * vec_ops.saturation(dR, -0.1, 0.1))
+
+
+    def update_orientation(self, dt):
+        self.theta -= self.u * dt
+        self.e = np.array([[np.cos(self.theta)], [np.sin(self.theta)]])
+
+    def switch_mode(self):
+        if self.state == self.mode_C:
+            # print(self.disk.min_disk_length, np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point))
+            if self.disk.min_disk_length < np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point):
+                self.state = self.mode_G
+                self.v_A = self.disk.disk_center
+        else:
+            if not vec_ops.is_point_in_angle(
+                self.v_A,
+                self.lidar.lidar_closest_point,
+                self.lidar.lidar_points[self.disk.min_arg],
+                np.array([self.x, self.y])):
+                self.state = self.mode_C
+    
+    def calculate_u(self):
+        if self.state == self.mode_C:
+            self.u = self.calc_u_mode_C()
+        else:
+            self.u = self.calc_u_mode_G()
+
+    def telemetry_output(self):
+        print(f'Mode {"C" if self.state == self.mode_C else "G"} | u: {self.u}')
