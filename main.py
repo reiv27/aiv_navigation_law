@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import time as TIME
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ start_time = TIME.time()
 
 
 dt = 1                             # Time step
-time_end = 5000                    # Simulation time
+time_end = 4750                    # Simulation time
 time = np.arange(0, time_end, dt)  # Total simulation time
 d = 5                              # Distance from equididstant to objects
 
@@ -86,8 +87,8 @@ def plotting_results():
 
 
     # Plot the Circle patch around circle_center with radius R
-    disk = plt.Circle(robot.disk.disk_center, robot.turning_radius, color='green', fill=False, linewidth=1)
-    plt.scatter(robot.disk.disk_center[0], robot.disk.disk_center[1], color='red', s=10, label="Circle Center")
+    disk = plt.Circle(robot.v_A, robot.turning_radius, color='green', fill=False, linewidth=1)
+    plt.scatter(robot.v_A[0], robot.v_A[1], color='red', s=10, label="Circle Center")
     ax.add_patch(disk)
 
     plt.xlabel("x")
@@ -100,3 +101,23 @@ def plotting_results():
 
 
 plotting_results()
+
+# Данные для записи
+robot_data = {
+    "x": robot.x_path,
+    "y": robot.x_path,
+    "mode": robot.mode_path,
+    "dR": robot.dR_path,
+    "ddR": robot.ddR_path,
+    "saturation": robot.sat_path,
+    "second_part": robot.second_part_path,
+    "sgn": robot.sgn_path,
+    "u": robot.u_path
+}
+
+for data in robot_data:
+    print(len(data))
+
+# Запись данных в файл
+with open("robot_data.json", "w") as json_file:
+    json.dump(robot_data, json_file, indent=4)  # indent=4 делает вывод красивым

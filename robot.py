@@ -59,7 +59,15 @@ class DubinsCar:
         self.x_path = []
         self.y_path = []
         self.theta_path = []
+
         self.u_path = []
+        self.mode_path = []
+        self.dR_path = []
+        self.ddR_path = []
+        self.sat_path = []
+        self.second_part_path = []
+        self.sgn_path = []
+
         self.n = 1
         self.v_A = self.disk.disk_center
 
@@ -138,26 +146,44 @@ class DubinsCar:
         p = self.lidar.lidar_closest_point
         dR = self.lidar.closest_distance - self.d
         ddR = (((r-p) / np.linalg.norm(r-p)) @ self.e)[0]
-        print(f'Mode C | dR={dR} ddR={ddR} n*z*dR={self.n * 0.025 * dR} sgn={np.sign(ddR + self.n * 0.025 * dR)}', end=' ')
-        print(f'u={self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)}')
-        return self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)
-        # return self.angular_velocity * np.sign(ddR + self.n * 0.025 * vec_ops.saturation(dR, -0.1, 0.1))
+        sat = vec_ops.saturation(dR, -0.1, 0.1)
+        second_part = self.n * 0.025 * sat
+        sgn = np.sign(ddR + second_part)
+        self.dR_path.append(dR)
+        self.ddR_path.append(ddR)
+        self.sat_path.append(sat)
+        self.second_part_path.append(second_part)
+        self.sgn_path.append(sgn)
 
-        # theta += u_input * dt
-        # self.e = np.array([[np.cos(theta)], [np.sin(theta)]])
+        print(f'Mode C | dR={dR} ddR={ddR} sat={sat} n*chi(dR)={second_part} sgn={sgn}', end=' ')
+        print(f'u={self.angular_velocity * sgn}')
+
+        return self.angular_velocity * sgn
 
     def calc_u_mode_G(self):
         r = np.array([self.x, self.y])
         v = self.v_A
         dR = self.turning_radius - np.linalg.norm(r - v)
         ddR = (((v-r) / np.linalg.norm(v-r)) @ self.e)[0]
-        print(f'Mode G | dR={dR} ddR={ddR} n*z*dR={self.n * 0.025 * dR} sgn={np.sign(ddR + self.n * 0.025 * dR)}', end=' ')
-        print(f'u={self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)}')
-        return self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)
+        # # return self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)
         # return self.angular_velocity * np.sign(ddR + self.n * 0.025 * vec_ops.saturation(dR, -0.1, 0.1))
+        sat = vec_ops.saturation(dR, -0.1, 0.1)
+        second_part = self.n * 0.025 * sat
+        sgn = np.sign(ddR + second_part)
+        self.dR_path.append(dR)
+        self.ddR_path.append(ddR)
+        self.sat_path.append(sat)
+        self.second_part_path.append(second_part)
+        self.sgn_path.append(sgn)
 
+        print(f'Mode G | dR={dR} ddR={ddR} sat={sat} n*chi(dR)={second_part} sgn={sgn}', end=' ')
+        print(f'u={self.angular_velocity * sgn}')
+        # return self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)
+        return self.angular_velocity * sgn
 
     def update_orientation(self, dt):
+        self.u_path.append(self.u)
+        self.mode_path.append("C" if self.state == self.mode_C else "G")
         self.theta -= self.u * dt
         self.e = np.array([[np.cos(self.theta)], [np.sin(self.theta)]])
 
