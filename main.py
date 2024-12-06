@@ -10,7 +10,7 @@ start_time = TIME.time()
 
 
 dt = 1                             # Time step
-time_end = 4750                    # Simulation time
+time_end = 10000                   # Simulation time
 time = np.arange(0, time_end, dt)  # Total simulation time
 d = 5                              # Distance from equididstant to objects
 
@@ -100,24 +100,39 @@ def plotting_results():
     plt.show()
 
 
+# print(len(robot.x_path))
+# print(len(robot.y_path))
+# print(len(robot.theta_path))
+
+# print(len(robot.mode_path))
+# print(len(robot.dR_path))
+# print(len(robot.ddR_path))
+# print(len(robot.sat_path))
+# print(len(robot.second_part_path))
+# print(len(robot.sgn_path))
+# print(len(robot.u_path))
+
+
 plotting_results()
 
 # Данные для записи
 robot_data = {
     "x": robot.x_path,
-    "y": robot.x_path,
+    "y": robot.y_path,
+    "theta": robot.theta_path,
     "mode": robot.mode_path,
     "dR": robot.dR_path,
     "ddR": robot.ddR_path,
     "saturation": robot.sat_path,
     "second_part": robot.second_part_path,
     "sgn": robot.sgn_path,
-    "u": robot.u_path
+    "u": robot.u_path,
+    "d(t)": robot.d_path,
+    "r": robot.r_path,
+    "p": robot.p_path,
+    "v(A)": robot.vA_path
 }
 
-for data in robot_data:
-    print(len(data))
-
 # Запись данных в файл
-with open("robot_data.json", "w") as json_file:
+with open(f"robot_data.json", "w") as json_file:
     json.dump(robot_data, json_file, indent=4)  # indent=4 делает вывод красивым

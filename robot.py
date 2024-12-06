@@ -17,6 +17,23 @@ class LiDAR:
         self.closest_distance = 0
         self.lidar_closest_point = np.array([0, 0])
 
+    def simulate_lidar_measurement(self, accuracy):
+        # Рассчитываем стандартное отклонение шума
+        noise_std = accuracy * self.lidar_distances
+        # Генерируем гауссовский шум
+        noise = np.random.normal(0, noise_std, size=self.lidar_distances.shape)
+        # Возвращаем измерения с шумом
+        self.lidar_distances += noise
+    
+    # def add_noise(self):
+    #     # Параметры гауссовского шума
+    #     mean = 0  # Среднее значение шума
+    #     std_dev = 0.1  # Стандартное отклонение шума
+
+    #     # Добавляем гауссовский шум
+    #     noise = np.random.normal(mean, std_dev, self.lidar_distances.shape)
+    #     self.lidar_distances += noise
+
 
 class TurningDisk:
     def __init__(self, R, resolution):
@@ -59,6 +76,7 @@ class DubinsCar:
         self.x_path = []
         self.y_path = []
         self.theta_path = []
+        self.e_path = []
 
         self.u_path = []
         self.mode_path = []
@@ -70,6 +88,10 @@ class DubinsCar:
 
         self.n = 1
         self.v_A = self.disk.disk_center
+        self.vA_path = []
+        self.p_path = []
+        self.d_path = []
+        self.r_path = []
 
     
     def init_pose(self, init_x, init_y, init_theta):
@@ -111,10 +133,14 @@ class DubinsCar:
 
             # Calculate distance for ray
             self.lidar.lidar_distances[i] = np.linalg.norm(self.lidar.lidar_points[i] - [self.x, self.y])
-            # Update closest params
-            self.lidar.closest_distance = np.min(self.lidar.lidar_distances)
-            self.lidar.lidar_closest_point = self.lidar.lidar_points[np.argmin(self.lidar.lidar_distances)]
-
+        
+        # Add noise
+        # self.lidar.add_noise()
+        self.lidar.simulate_lidar_measurement(0.02)
+        
+        # Update closest params
+        self.lidar.closest_distance = np.min(self.lidar.lidar_distances)
+        self.lidar.lidar_closest_point = self.lidar.lidar_points[np.argmin(self.lidar.lidar_distances)]            
 
     def update_disk_center(self):
         self.disk.disk_center = vec_ops.find_vector_with_dir(
@@ -122,37 +148,38 @@ class DubinsCar:
             self.lidar.lidar_closest_point,
             self.d + self.disk.R
         )
-        # print(self.disk.disk_center)
     
     def update_disk_rays(self):
-        # print(self.disk.R, self.d)
         target_index = np.argmin(self.lidar.lidar_distances)
-        start = target_index - 10
-        end = target_index + 10
+        start = target_index - 30
+        end = target_index + 30
         interval = np.arange(start, end, 1)
         for i in range(self.lidar.lidar_resolution-1):
             if i in interval:
-                self.disk.disk_rays_lengths[i] = self.lidar.lidar_range + 10
+                self.disk.disk_rays_lengths[i] = self.lidar.lidar_range + 100
                 continue
             self.disk.disk_rays_lengths[i] = np.linalg.norm(self.lidar.lidar_points[i] - self.disk.disk_center)
-            # print(self.disk.disk_rays_lengths[i])
         
         self.disk.min_disk_length = np.min(self.disk.disk_rays_lengths)
         self.disk.min_arg = np.argmin(self.disk.disk_rays_lengths)
     
     def calc_u_mode_C(self):
         r = np.array([self.x, self.y])
-        # v = self.disk.disk_center
         p = self.lidar.lidar_closest_point
         dR = self.lidar.closest_distance - self.d
-        ddR = (((r-p) / np.linalg.norm(r-p)) @ self.e)[0]
+        ddR = self.linear_velocity * (((r-p) / np.linalg.norm(r-p)) @ self.e)[0]
         sat = vec_ops.saturation(dR, -0.1, 0.1)
         second_part = self.n * 0.025 * sat
         sgn = np.sign(ddR + second_part)
-        self.dR_path.append(dR)
+
+        self.d_path.append(float(self.lidar.closest_distance))
+        self.r_path.append((round(float(r[0]),2), round(float(r[1]),2)))
+        self.p_path.append((round(float(p[0]),2), round(float(p[1]),2)))
+        self.vA_path.append(0)
+        self.dR_path.append(float(dR))
         self.ddR_path.append(ddR)
-        self.sat_path.append(sat)
-        self.second_part_path.append(second_part)
+        self.sat_path.append(float(sat))
+        self.second_part_path.append(float(second_part))
         self.sgn_path.append(sgn)
 
         print(f'Mode C | dR={dR} ddR={ddR} sat={sat} n*chi(dR)={second_part} sgn={sgn}', end=' ')
@@ -164,28 +191,32 @@ class DubinsCar:
         r = np.array([self.x, self.y])
         v = self.v_A
         dR = self.turning_radius - np.linalg.norm(r - v)
-        ddR = (((v-r) / np.linalg.norm(v-r)) @ self.e)[0]
-        # # return self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)
-        # return self.angular_velocity * np.sign(ddR + self.n * 0.025 * vec_ops.saturation(dR, -0.1, 0.1))
+        ddR = self.linear_velocity * (((v-r) / np.linalg.norm(v-r)) @ self.e)[0]
         sat = vec_ops.saturation(dR, -0.1, 0.1)
         second_part = self.n * 0.025 * sat
         sgn = np.sign(ddR + second_part)
-        self.dR_path.append(dR)
+
+        self.d_path.append(0.0)
+        self.r_path.append((round(float(r[0]),2), round(float(r[1]),2)))
+        self.p_path.append(0.0)
+        self.vA_path.append((round(float(v[0]),2), round(float(v[1]),2)))
+        self.dR_path.append(float(dR))
         self.ddR_path.append(ddR)
-        self.sat_path.append(sat)
-        self.second_part_path.append(second_part)
-        self.sgn_path.append(sgn)
+        self.sat_path.append(float(sat))
+        self.second_part_path.append(float(second_part))
+        self.sgn_path.append(float(sgn))
 
         print(f'Mode G | dR={dR} ddR={ddR} sat={sat} n*chi(dR)={second_part} sgn={sgn}', end=' ')
         print(f'u={self.angular_velocity * sgn}')
-        # return self.angular_velocity * np.sign(ddR + self.n * 0.025 * dR)
         return self.angular_velocity * sgn
 
     def update_orientation(self, dt):
         self.u_path.append(self.u)
         self.mode_path.append("C" if self.state == self.mode_C else "G")
         self.theta -= self.u * dt
+        self.theta_path.append(self.theta)
         self.e = np.array([[np.cos(self.theta)], [np.sin(self.theta)]])
+        self.e_path.append(self.e)
 
     def switch_mode(self):
         if self.state == self.mode_C:
