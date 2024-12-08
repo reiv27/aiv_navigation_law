@@ -9,30 +9,82 @@ from vector_operations import find_vector_with_dir
 start_time = TIME.time()
 
 
-dt = 1                             # Time step
-time_end = 10000                   # Simulation time
-time = np.arange(0, time_end, dt)  # Total simulation time
-d = 5                              # Distance from equididstant to objects
+# # Obstacles and equidistant 1
+# obs_1 = np.array([[50, 10], [50, 65]], dtype=np.float32)
+# obs_2 = np.array([[50, 65], [0, 65]], dtype=np.float32)
+# obs_3 = np.array([[0, 65],  [0, 10]], dtype=np.float32)
+# obs_4 = np.array([[0, 10],   [50, 10]], dtype=np.float32)
 
-robot = DubinsCar(0.10, 0.025, 5, d)
-robot.init_pose(43, 20, np.pi/2)
+# equid_1 = np.array([[42, 18], [42, 57]], dtype=np.float32)
+# equid_2 = np.array([[42, 57], [8, 57]], dtype=np.float32)
+# equid_3 = np.array([[8, 57], [8, 18]], dtype=np.float32)
+# equid_4 = np.array([[8, 18], [42, 18]], dtype=np.float32)
+
+# obstacles = np.array([obs_1, obs_2, obs_3, obs_4])
+# equidistants = np.array([equid_1, equid_2, equid_3, equid_4])
+
+# Obstacles 2
+# obs_1 = np.array([[0, 0], [70, 0]], dtype=np.float64)
+# obs_2 = np.array([[70, 0], [70, 50]], dtype=np.float64)
+# obs_3 = np.array([[70, 50], [150, 50]], dtype=np.float64)
+# obs_4 = np.array([[150, 50], [150, 0]], dtype=np.float64)
+# obs_5 = np.array([[150, 0], [220, 0]], dtype=np.float64)
+# obs_6 = np.array([[220, 0], [220, 140]], dtype=np.float64)
+# obs_7 = np.array([[220, 140], [150, 140]], dtype=np.float64)
+# obs_8 = np.array([[150, 140], [150, 90]], dtype=np.float64)
+# obs_9 = np.array([[150, 90], [70, 90]], dtype=np.float64)
+# obs_10 = np.array([[70, 90], [70, 140]], dtype=np.float64)
+# obs_11 = np.array([[70, 140], [0, 140]], dtype=np.float64)
+# obs_12 = np.array([[0, 140], [0, 0]], dtype=np.float64)
+
+# obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5, obs_6, obs_7, obs_8, obs_9, obs_10, obs_11, obs_12])
+# # equidistants = np.array([equid_1, equid_2, equid_3, equid_4])
+
+# Obstacles 3
+obs_1 = np.array([[0, 0], [70, 50]], dtype=np.float64)
+obs_2 = np.array([[70, 50], [150, 50]], dtype=np.float64)
+obs_3 = np.array([[150, 50], [220, 0]], dtype=np.float64)
+obs_4 = np.array([[220, 0], [220, 140]], dtype=np.float64)
+obs_5 = np.array([[220, 140], [150, 90]], dtype=np.float64)
+obs_6 = np.array([[150, 90], [70, 90]], dtype=np.float64)
+obs_7 = np.array([[70, 90], [0, 140]], dtype=np.float64)
+obs_8 = np.array([[0, 140], [0, 0]], dtype=np.float64)
+
+obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5, obs_6, obs_7, obs_8])
+# obstacles = np.array([obs_4, obs_5])
+# equidistants = np.array([equid_1, equid_2, equid_3, equid_4])
 
 
-# Obstacles and equidistant
-obs_1 = np.array([[50, 10], [50, 65]], dtype=np.float32)
-obs_2 = np.array([[50, 65], [0, 65]], dtype=np.float32)
-obs_3 = np.array([[0, 65],  [0, 10]], dtype=np.float32)
-obs_4 = np.array([[0, 10],   [50, 10]], dtype=np.float32)
+# Obstacles 4
+# obs_1 = np.array([[0, 0], [5, 0]], dtype=np.float64)
+# obs_2 = np.array([[5, 0], [5, 5]], dtype=np.float64)
+# obs_3 = np.array([[5, 5], [0, 5]], dtype=np.float64)
+# obs_4 = np.array([[0, 5], [0, 0]], dtype=np.float64)
 
-equid_1 = np.array([[45, 15], [45, 60]], dtype=np.float32)
-equid_2 = np.array([[45, 60], [5, 60]], dtype=np.float32)
-equid_3 = np.array([[5, 60], [5, 15]], dtype=np.float32)
-equid_4 = np.array([[5, 15], [45, 15]], dtype=np.float32)
+# obs_1 = np.array([[0, 0], [5, 0]], dtype=np.float64)
+# obs_2 = np.array([[5, 0], [5, 5]], dtype=np.float64)
+# obs_3 = np.array([[5, 5], [0, 5]], dtype=np.float64)
+# obs_4 = np.array([[0, 5], [0, 0]], dtype=np.float64)
 
-# obstacles = np.array([obs_1, obs_2])
-# equidistants = np.array([equid_1, equid_2])
-obstacles = np.array([obs_1, obs_2, obs_3, obs_4])
-equidistants = np.array([equid_1, equid_2, equid_3, equid_4])
+# obs_1 = np.array([[0, 0], [5, 0]], dtype=np.float64)
+# obs_2 = np.array([[5, 0], [5, 5]], dtype=np.float64)
+# obs_3 = np.array([[5, 5], [0, 5]], dtype=np.float64)
+# obs_4 = np.array([[0, 5], [0, 0]], dtype=np.float64)
+
+# obs_1 = np.array([[0, 0], [5, 0]], dtype=np.float64)
+# obs_2 = np.array([[5, 0], [5, 5]], dtype=np.float64)
+# obs_3 = np.array([[5, 5], [0, 5]], dtype=np.float64)
+# obs_4 = np.array([[0, 5], [0, 0]], dtype=np.float64)
+
+# obs_1 = np.array([[0, 0], [5, 0]], dtype=np.float64)
+# obs_2 = np.array([[5, 0], [5, 5]], dtype=np.float64)
+# obs_3 = np.array([[5, 5], [0, 5]], dtype=np.float64)
+# obs_4 = np.array([[0, 5], [0, 0]], dtype=np.float64)
+
+# obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5, obs_6, obs_7, obs_8])
+# # equidistants = np.array([equid_1, equid_2, equid_3, equid_4])
+
+
 
 def plot_obstacles(obstacles):
     for obstacle in obstacles:
@@ -43,8 +95,17 @@ def plot_equidistants(equidistants):
     for equidistant in equidistants:
         plt.plot([equidistant[0][0], equidistant[1][0]], [equidistant[0][1], equidistant[1][1]], color='blue')
 
+
+dt = 1                             # Time step
+time_end = 20000                   # Simulation time
+time = np.arange(0, time_end, dt)  # Total simulation time
+d = 8                              # Distance from equididstant to objects
+
+robot = DubinsCar(0.1, 0.025, 5, d)
+robot.init_pose(12, 50, np.pi/2)
+
 # Simulate
-for j, t in enumerate(time):
+for t in time:
     # Update position based on Dubins car kinematics
     robot.update_pose(dt)
 
@@ -60,6 +121,10 @@ for j, t in enumerate(time):
 
     # Calculate U
     robot.calculate_u()
+    # if t > 321:
+    #     break
+    # if robot.state:
+    #     break
     robot.update_orientation(dt)
 
     # Print some data
@@ -74,14 +139,14 @@ def plotting_results():
     plt.plot(robot.x_path, robot.y_path, label="Dubins Car Path", color='red')
     # Plot obstacles
     plot_obstacles(obstacles)
-    plot_equidistants(equidistants)
+    # plot_equidistants(equidistants)
 
     # Plot LiDAR points
-    # plt.scatter(robot.lidar.lidar_points[:,0], robot.lidar.lidar_points[:,1], color='red', s=1, label="LiDAR Rays")
+    plt.scatter(robot.lidar.lidar_points[:,0], robot.lidar.lidar_points[:,1], color='red', s=1, label="LiDAR Rays")
     # print(robot.lidar.lidar_closest_point)
     
     # Plot closest point and circle center
-    plt.scatter(robot.lidar.lidar_closest_point[0], robot.lidar.lidar_closest_point[1], color='orange', s=50, label="Closest Point")
+    plt.scatter(robot.lidar.lidar_closest_point[0], robot.lidar.lidar_closest_point[1], color='red', s=50, label="Closest Point")
     # plt.plot([robot.disk.disk_center[0], robot.lidar.lidar_points[robot.disk.min_arg][0]], [robot.disk.disk_center[1], robot.lidar.lidar_points[robot.disk.min_arg][1]], color='orange', label="Stop")
     plt.scatter(robot.lidar.lidar_points[robot.disk.min_arg][0], robot.lidar.lidar_points[robot.disk.min_arg][1], color='orange', s=50, label="Closest Point")
 

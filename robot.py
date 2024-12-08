@@ -127,6 +127,7 @@ class DubinsCar:
             for obs in obstacles:
                 intersection = vec_ops.find_intersection(np.array([[self.x, self.y], [lidar_data_x, lidar_data_y]]), obs)
                 # Rewrite point if it has intersection with obstacle
+
                 if intersection is not None:
                     self.lidar.lidar_points[i][0] = intersection[0]
                     self.lidar.lidar_points[i][1] = intersection[1]
@@ -136,7 +137,7 @@ class DubinsCar:
         
         # Add noise
         # self.lidar.add_noise()
-        self.lidar.simulate_lidar_measurement(0.02)
+        # self.lidar.simulate_lidar_measurement(0.02)
         
         # Update closest params
         self.lidar.closest_distance = np.min(self.lidar.lidar_distances)
@@ -163,6 +164,21 @@ class DubinsCar:
         self.disk.min_disk_length = np.min(self.disk.disk_rays_lengths)
         self.disk.min_arg = np.argmin(self.disk.disk_rays_lengths)
     
+    def switch_mode(self):
+        # print(round(self.disk.min_disk_length, 5), round(np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point), 4))
+        if self.state == self.mode_C:
+            # print(self.disk.min_disk_length, np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point))
+            if self.disk.min_disk_length < np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point):
+                self.state = self.mode_G
+                self.v_A = self.disk.disk_center
+        else:
+            if not vec_ops.is_point_in_angle_180(
+                self.v_A,
+                self.lidar.lidar_closest_point,
+                self.lidar.lidar_points[self.disk.min_arg],
+                np.array([self.x, self.y])):
+                    self.state = self.mode_C
+    
     def calc_u_mode_C(self):
         r = np.array([self.x, self.y])
         p = self.lidar.lidar_closest_point
@@ -182,8 +198,8 @@ class DubinsCar:
         self.second_part_path.append(float(second_part))
         self.sgn_path.append(sgn)
 
-        print(f'Mode C | dR={dR} ddR={ddR} sat={sat} n*chi(dR)={second_part} sgn={sgn}', end=' ')
-        print(f'u={self.angular_velocity * sgn}')
+        print(f'Mode C | dR={round(dR, 4):>7} ddR={round(ddR, 4):>7}', end=' ')
+        print(f'u={self.angular_velocity * sgn:>6}')
 
         return self.angular_velocity * sgn
 
@@ -206,31 +222,19 @@ class DubinsCar:
         self.second_part_path.append(float(second_part))
         self.sgn_path.append(float(sgn))
 
-        print(f'Mode G | dR={dR} ddR={ddR} sat={sat} n*chi(dR)={second_part} sgn={sgn}', end=' ')
-        print(f'u={self.angular_velocity * sgn}')
+        print(f'Mode G | dR={round(dR, 4):>7} ddR={round(ddR, 4):>7} sec_part={round(second_part, 4):>7}', end=' ')
+        print(f'u={self.angular_velocity * sgn:>6} v_A={v}')
+
         return self.angular_velocity * sgn
 
     def update_orientation(self, dt):
         self.u_path.append(self.u)
         self.mode_path.append("C" if self.state == self.mode_C else "G")
-        self.theta -= self.u * dt
+        # self.theta -= self.u * dt
+        self.theta += self.u * dt
         self.theta_path.append(self.theta)
         self.e = np.array([[np.cos(self.theta)], [np.sin(self.theta)]])
         self.e_path.append(self.e)
-
-    def switch_mode(self):
-        if self.state == self.mode_C:
-            # print(self.disk.min_disk_length, np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point))
-            if self.disk.min_disk_length < np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point):
-                self.state = self.mode_G
-                self.v_A = self.disk.disk_center
-        else:
-            if not vec_ops.is_point_in_angle(
-                self.v_A,
-                self.lidar.lidar_closest_point,
-                self.lidar.lidar_points[self.disk.min_arg],
-                np.array([self.x, self.y])):
-                self.state = self.mode_C
     
     def calculate_u(self):
         if self.state == self.mode_C:

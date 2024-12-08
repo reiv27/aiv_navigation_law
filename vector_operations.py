@@ -17,7 +17,8 @@ def find_intersection(vector_1, vector_2):
             return vector_1[0] + t * d1
 
 
-def is_point_in_angle(V, P1, P2, r_pose):
+def is_point_in_angle_90(V, P1, P2, r_pose):
+    # v_A, lidar_closest_point, lidar_points[self.disk.min_arg], r
     # Calculate vectors
     VP1 = P1 - V
     VP2 = P2 - V
@@ -33,7 +34,36 @@ def is_point_in_angle(V, P1, P2, r_pose):
 
     # Check angle consistency
     cross = np.cross(VP1_norm, VP2_norm)
+    # print(V, P2)
+    # print(P2 - V)
+    # print(VP2 / np.linalg.norm(VP2))
+    # print(np.dot(VP2_norm, VR))
+    # print(dot1 >= 0, dot2 >= 0, (np.cross(VP1, VR) * cross >= 0))
     return dot1 >= 0 and dot2 >= 0 and (np.cross(VP1, VR) * cross >= 0)
+
+
+def is_point_in_angle_180(V, P1, P2, r_pose):
+    # Calculate vectors
+    VP1 = P1 - V
+    VP2 = P2 - V
+    VR = r_pose - V
+
+    # Normalize vectors
+    VP1_norm = VP1 / np.linalg.norm(VP1)
+    VP2_norm = VP2 / np.linalg.norm(VP2)
+    VR_norm = VR / np.linalg.norm(VR)
+
+    # Calculate the angle between P1 and P2 using the dot product
+    angle_P1_P2 = np.arccos(np.clip(np.dot(VP1_norm, VP2_norm), -1.0, 1.0))  # Angle between P1 and P2
+
+    # Calculate the angle between VR and VP1
+    angle_VR_P1 = np.arccos(np.clip(np.dot(VR_norm, VP1_norm), -1.0, 1.0))
+
+    # Calculate the angle between VR and VP2
+    angle_VR_P2 = np.arccos(np.clip(np.dot(VR_norm, VP2_norm), -1.0, 1.0))
+
+    # Check if the angle between VR and both P1 and P2 is less than the angle between P1 and P2
+    return angle_VR_P1 <= angle_P1_P2 and angle_VR_P2 <= angle_P1_P2
 
 
 def find_vector_with_dir(point_1, point_2, l):
