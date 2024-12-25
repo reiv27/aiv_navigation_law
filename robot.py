@@ -7,11 +7,11 @@ class LiDAR:
         self.lidar_resolution = lidar_resolution  # Number of rays in 360 degrees
         self.lidar_points = np.zeros(             # Coordinates of all rays
             (lidar_resolution-1, 2),
-            dtype=np.float32
+            dtype=np.float64
         )
         self.lidar_distances = np.zeros(          # Value of all rays' distances
             lidar_resolution-1,
-            dtype=np.float32
+            dtype=np.float64
         )
         self.angles_of_rays = np.linspace(0, 2 * np.pi, lidar_resolution)
         self.closest_distance = 0
@@ -24,15 +24,24 @@ class LiDAR:
         noise = np.random.normal(0, noise_std, size=self.lidar_distances.shape)
         # Возвращаем измерения с шумом
         self.lidar_distances += noise
-    
-    # def add_noise(self):
-    #     # Параметры гауссовского шума
-    #     mean = 0  # Среднее значение шума
-    #     std_dev = 0.1  # Стандартное отклонение шума
 
-    #     # Добавляем гауссовский шум
-    #     noise = np.random.normal(mean, std_dev, self.lidar_distances.shape)
-    #     self.lidar_distances += noise
+    def sma(self, core):
+        filtered_data = np.zeros(
+            self.lidar_resolution-1,
+            dtype=np.float64
+        )
+
+        for i, distance in enumerate(self.lidar_distances):
+            if i < core-1:
+                sum = 0
+                for j in range(i+1-core, i+1):
+                    sum += self.lidar_distances[j]
+                filtered_data[i] = sum / core
+                continue
+
+            filtered_data[i] = np.sum(self.lidar_distances[i+1-core:i+1]) / core
+
+        return filtered_data
 
 
 class TurningDisk:
@@ -41,7 +50,7 @@ class TurningDisk:
         self.disk_center = np.array([0.0, 0.0])
         self.disk_rays_lengths = np.zeros( 
             resolution-1,
-            dtype=np.float32
+            dtype=np.float64
         )
         self.min_disk_length = 0
         self.min_arg = 0
@@ -56,7 +65,8 @@ class DubinsCar:
         self.linear_velocity = linear_velocity
         self.angular_velocity = angular_velocity
         self.R_min = linear_velocity / angular_velocity
-        self.turning_radius = turning_radius
+        # self.turning_radius = turning_radius
+        self.turning_radius = self.R_min
         self.d = d
 
         self.x = 0
@@ -67,7 +77,7 @@ class DubinsCar:
             [np.sin(self.theta)]
         ])
         
-        self.lidar = LiDAR(20, 360)
+        self.lidar = LiDAR(30, 360)
         self.disk = TurningDisk(turning_radius, 360)
         
         self.state = self.mode_C
@@ -126,9 +136,8 @@ class DubinsCar:
             # Find intersection with obstacles
             for obs in obstacles:
                 intersection = vec_ops.find_intersection(np.array([[self.x, self.y], [lidar_data_x, lidar_data_y]]), obs)
-                # Rewrite point if it has intersection with obstacle
 
-                if intersection is not None:
+                if (intersection is not None) and (np.linalg.norm(intersection-[self.x, self.y]) < np.linalg.norm(self.lidar.lidar_points[i]-[self.x, self.y])):  #!!!!!!!!!!!!!!!!
                     self.lidar.lidar_points[i][0] = intersection[0]
                     self.lidar.lidar_points[i][1] = intersection[1]
 
@@ -136,8 +145,13 @@ class DubinsCar:
             self.lidar.lidar_distances[i] = np.linalg.norm(self.lidar.lidar_points[i] - [self.x, self.y])
         
         # Add noise
-        # self.lidar.add_noise()
-        # self.lidar.simulate_lidar_measurement(0.02)
+        self.lidar.simulate_lidar_measurement(0.02)
+        # print(self.lidar.lidar_distances)
+
+        # Filter lidar data
+        core = 3
+        # self.lidar.lidar_distances = self.lidar.sma(core)
+        # print(self.lidar.lidar_distances)
         
         # Update closest params
         self.lidar.closest_distance = np.min(self.lidar.lidar_distances)
@@ -152,12 +166,12 @@ class DubinsCar:
     
     def update_disk_rays(self):
         target_index = np.argmin(self.lidar.lidar_distances)
-        start = target_index - 30
-        end = target_index + 30
+        start = target_index - 10
+        end = target_index + 10
         interval = np.arange(start, end, 1)
         for i in range(self.lidar.lidar_resolution-1):
             if i in interval:
-                self.disk.disk_rays_lengths[i] = self.lidar.lidar_range + 100
+                self.disk.disk_rays_lengths[i] = self.lidar.lidar_range + 1000
                 continue
             self.disk.disk_rays_lengths[i] = np.linalg.norm(self.lidar.lidar_points[i] - self.disk.disk_center)
         
@@ -165,14 +179,12 @@ class DubinsCar:
         self.disk.min_arg = np.argmin(self.disk.disk_rays_lengths)
     
     def switch_mode(self):
-        # print(round(self.disk.min_disk_length, 5), round(np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point), 4))
         if self.state == self.mode_C:
-            # print(self.disk.min_disk_length, np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point))
             if self.disk.min_disk_length < np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point):
                 self.state = self.mode_G
                 self.v_A = self.disk.disk_center
         else:
-            if not vec_ops.is_point_in_angle_180(
+            if not vec_ops.is_point_in_angle(
                 self.v_A,
                 self.lidar.lidar_closest_point,
                 self.lidar.lidar_points[self.disk.min_arg],
@@ -241,6 +253,3 @@ class DubinsCar:
             self.u = self.calc_u_mode_C()
         else:
             self.u = self.calc_u_mode_G()
-
-    def telemetry_output(self):
-        print(f'Mode {"C" if self.state == self.mode_C else "G"} | u: {self.u}')
