@@ -2,3 +2,5 @@
 build
 install
 log
+__pycache__
+robot_data.json

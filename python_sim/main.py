@@ -60,6 +60,27 @@ def parallel_line(points, distance):
 # equidistants = np.array([equid_1, equid_2, equid_3, equid_4])
 
 
+# obs_1 = np.array([[0, 65],  [0, 10]], dtype=np.float32)
+# obs_2 = np.array([[0, 10],   [50, 10]], dtype=np.float32)
+# obs_3 = np.array([[50, 10], [50, 30]], dtype=np.float32)
+# obs_4 = np.array([[50, 30], [10, 30]], dtype=np.float32)
+# obs_5 = np.array([[10, 30], [10, 40]], dtype=np.float32)
+# obs_6 = np.array([[10, 40], [50, 40]], dtype=np.float32)
+# obs_7 = np.array([[50, 40], [50, 65]], dtype=np.float32)
+# obs_8 = np.array([[50, 65], [0, 65]], dtype=np.float32)
+# obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5, obs_6, obs_7, obs_8])
+
+
+obs_1 = np.array([[0, 60],  [0, 10]], dtype=np.float32)
+obs_2 = np.array([[0, 10],   [50, 10]], dtype=np.float32)
+obs_3 = np.array([[50, 10], [10, 35]], dtype=np.float32)
+obs_4 = np.array([[10, 35], [50, 60]], dtype=np.float32)
+# obs_4 = np.array([[50, 30], [10, 30]], dtype=np.float32)
+# obs_5 = np.array([[10, 30], [10, 40]], dtype=np.float32)
+# obs_6 = np.array([[10, 40], [50, 40]], dtype=np.float32)
+# obs_7 = np.array([[50, 40], [50, 60]], dtype=np.float32)
+obs_5 = np.array([[50, 60], [0, 60]], dtype=np.float32)
+obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5])
 
 
 
@@ -123,15 +144,15 @@ def parallel_line(points, distance):
 
 
 # Obstacles 3
-obs_1 = np.array([[0, 0], [80, 55]], dtype=np.float64)
-obs_2 = np.array([[80, 55], [140, 55]], dtype=np.float64)
-obs_3 = np.array([[140, 55], [220, 0]], dtype=np.float64)
-obs_4 = np.array([[220, 0], [220, 140]], dtype=np.float64)
-obs_5 = np.array([[220, 140], [140, 85]], dtype=np.float64)
-obs_6 = np.array([[140, 85], [80, 85]], dtype=np.float64)
-obs_7 = np.array([[80, 85], [0, 140]], dtype=np.float64)
-obs_8 = np.array([[0, 140], [0, 0]], dtype=np.float64)
-obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5, obs_6, obs_7, obs_8])
+# obs_1 = np.array([[0, 0], [80, 55]], dtype=np.float64)
+# obs_2 = np.array([[80, 55], [140, 55]], dtype=np.float64)
+# obs_3 = np.array([[140, 55], [220, 0]], dtype=np.float64)
+# obs_4 = np.array([[220, 0], [220, 140]], dtype=np.float64)
+# obs_5 = np.array([[220, 140], [140, 85]], dtype=np.float64)
+# obs_6 = np.array([[140, 85], [80, 85]], dtype=np.float64)
+# obs_7 = np.array([[80, 85], [0, 140]], dtype=np.float64)
+# obs_8 = np.array([[0, 140], [0, 0]], dtype=np.float64)
+# obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5, obs_6, obs_7, obs_8])
 
 # equid_1 = np.array([[8, 8], [8, 8]], dtype=np.float64)
 # equid_2 = np.array([[62, 8], [62, 50]], dtype=np.float64)
@@ -339,12 +360,12 @@ start_time = TIME.time()
 
 
 dt = 1                             # Time step
-time_end = 1000                    # Simulation time
+time_end = 3000                    # Simulation time
 time = np.arange(0, time_end, dt)  # Total simulation time
 d = 8                              # Distance from equididstant to objects
 
-robot = DubinsCar(0.28, 0.02, 14, d)
-robot.init_pose(8, 50, np.pi/2)
+robot = DubinsCar(0.1, 0.02, 5, d)
+robot.init_pose(25, 35, 0)
 
 # Simulate
 for t in time:
@@ -352,13 +373,24 @@ for t in time:
     robot.update_pose(dt)
     # LiDAR scan
     robot.lidar_scan(obstacles)
+    if t == 0:
+        robot.goal = np.arctan2(robot.lidar.lidar_closest_point[1]-robot.y, robot.lidar.lidar_closest_point[0]-robot.x)
+        # print(robot.lidar.lidar_closest_point)
+        # print(robot.y, robot.x)
+        # phi = np.arctan2(vy, vx)
     # Update disk rays
     robot.update_disk_center()
     robot.update_disk_rays()
+
+    #Check global robot state
+    # robot.switch_global_mode()
+
     # Check robot state
-    robot.switch_mode()
+    robot.switch_mode_in_main()
     # Calculate U
     robot.calculate_u()
+    # robot.calculate_global_u()
+    print(robot.u)
     robot.update_orientation(dt)
 
     print(f'{t} / {time_end}')

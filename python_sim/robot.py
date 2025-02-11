@@ -57,8 +57,11 @@ class TurningDisk:
 
 class DubinsCar:
 
+    mode_First = 0
+    mode_Main = 1
     mode_C = 0
     mode_G = 1
+    goal = 0
 
 
     def __init__(self, linear_velocity, angular_velocity, turning_radius, d) -> None:
@@ -77,9 +80,10 @@ class DubinsCar:
             [np.sin(self.theta)]
         ])
         
-        self.lidar = LiDAR(30, 360)
+        self.lidar = LiDAR(50, 360)
         self.disk = TurningDisk(turning_radius, 360)
         
+        self.state_global = self.mode_First
         self.state = self.mode_C
         self.u = 0
 
@@ -178,18 +182,27 @@ class DubinsCar:
         self.disk.min_disk_length = np.min(self.disk.disk_rays_lengths)
         self.disk.min_arg = np.argmin(self.disk.disk_rays_lengths)
     
-    def switch_mode(self):
-        if self.state == self.mode_C:
-            if self.disk.min_disk_length < np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point):
-                self.state = self.mode_G
-                self.v_A = self.disk.disk_center
+
+    # def switch_global_mode(self):
+        
+
+
+    def switch_mode_in_main(self):
+        if self.state_global == self.mode_First:
+            if self.lidar.closest_distance < (self.d + 1.2 * self.R_min):
+                self.state_global = self.mode_Main
         else:
-            if not vec_ops.is_point_in_angle(
-                self.v_A,
-                self.lidar.lidar_closest_point,
-                self.lidar.lidar_points[self.disk.min_arg],
-                np.array([self.x, self.y])):
-                    self.state = self.mode_C
+            if self.state == self.mode_C:
+                if self.disk.min_disk_length < np.linalg.norm(self.disk.disk_center-self.lidar.lidar_closest_point):
+                    self.state = self.mode_G
+                    self.v_A = self.disk.disk_center
+            else:
+                if not vec_ops.is_point_in_angle(
+                    self.v_A,
+                    self.lidar.lidar_closest_point,
+                    self.lidar.lidar_points[self.disk.min_arg],
+                    np.array([self.x, self.y])):
+                        self.state = self.mode_C
     
     def calc_u_mode_C(self):
         r = np.array([self.x, self.y])
@@ -239,6 +252,12 @@ class DubinsCar:
 
         return self.angular_velocity * sgn
 
+    def calculate_global_u(self):
+        eps = 0.1
+        phi = self.goal
+        return self.angular_velocity * np.sign(phi - self.theta)
+
+
     def update_orientation(self, dt):
         self.u_path.append(self.u)
         self.mode_path.append("C" if self.state == self.mode_C else "G")
@@ -249,7 +268,10 @@ class DubinsCar:
         self.e_path.append(self.e)
     
     def calculate_u(self):
-        if self.state == self.mode_C:
-            self.u = self.calc_u_mode_C()
+        if self.state_global == self.mode_First:
+            self.u = self.calculate_global_u()
         else:
-            self.u = self.calc_u_mode_G()
+            if self.state == self.mode_C:
+                self.u = self.calc_u_mode_C()
+            else:
+                self.u = self.calc_u_mode_G()
