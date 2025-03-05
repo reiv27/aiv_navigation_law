@@ -49,3 +49,12 @@ def find_vector_with_dir(point_1, point_2, l):
 
 def saturation(x, min_val, max_val):
     return np.clip(x, min_val, max_val)
+
+
+def normalize_angle(theta):
+    """Normalize angle to [-π, π)."""
+    while theta >= np.pi:
+        theta -= 2 * np.pi
+    while theta < -np.pi:
+        theta += 2 * np.pi
+    return theta

@@ -42,6 +42,16 @@ def parallel_line(points, distance):
     return np.array([parallel_p1, parallel_p2])
 
 
+def calculate_rotation_angle(theta_robot, theta_target_local):
+    theta_target_global = theta_robot + theta_target_local
+    theta_target_global = vec_ops.normalize_angle(theta_target_global)
+    
+    delta_theta = theta_target_global - theta_robot
+    delta_theta = vec_ops.normalize_angle(delta_theta)
+    
+    return delta_theta
+
+
 
 
 
@@ -360,12 +370,12 @@ start_time = TIME.time()
 
 
 dt = 1                             # Time step
-time_end = 3000                    # Simulation time
+time_end = 400                    # Simulation time
 time = np.arange(0, time_end, dt)  # Total simulation time
 d = 8                              # Distance from equididstant to objects
 
 robot = DubinsCar(0.1, 0.02, 5, d)
-robot.init_pose(25, 35, 0)
+robot.init_pose(70, 0, np.pi)
 
 # Simulate
 for t in time:
@@ -374,10 +384,15 @@ for t in time:
     # LiDAR scan
     robot.lidar_scan(obstacles)
     if t == 0:
-        robot.goal = np.arctan2(robot.lidar.lidar_closest_point[1]-robot.y, robot.lidar.lidar_closest_point[0]-robot.x)
-        # print(robot.lidar.lidar_closest_point)
-        # print(robot.y, robot.x)
-        # phi = np.arctan2(vy, vx)
+        azimuth = np.arctan2(robot.lidar.lidar_closest_point[1]-robot.y, robot.lidar.lidar_closest_point[0]-robot.x)
+        # delta = azimuth - robot.theta
+        robot.goal = calculate_rotation_angle(robot.theta, azimuth)
+        # robot.goal = azimuth - robot.theta
+        print(f'orientation: {robot.theta}')
+        print(f'azimuth: {azimuth}')
+        print(robot.goal)
+        # robot.goal = np.arctan2(robot.lidar.lidar_closest_point[1]-robot.y, robot.lidar.lidar_closest_point[0]-robot.x)
+
     # Update disk rays
     robot.update_disk_center()
     robot.update_disk_rays()
@@ -442,7 +457,7 @@ def plotting_results():
     # Plot closest point and circle center
     # disk = plt.Circle(robot.disk.disk_center, robot.R_min, color='orange', fill=False, linewidth=1)
     # ax.add_patch(disk)
-    # plt.scatter(robot.lidar.lidar_closest_point[0], robot.lidar.lidar_closest_point[1], color='brown', s=50, label="Closest Robot Point")
+    plt.scatter(robot.lidar.lidar_closest_point[0], robot.lidar.lidar_closest_point[1], color='brown', s=50, label="Closest Robot Point")
     # plt.plot([robot.disk.disk_center[0], robot.lidar.lidar_points[robot.disk.min_arg][0]], [robot.disk.disk_center[1], robot.lidar.lidar_points[robot.disk.min_arg][1]], color='orange', label="Disk Center")
     # plt.scatter(robot.lidar.lidar_points[robot.disk.min_arg][0], robot.lidar.lidar_points[robot.disk.min_arg][1], color='orange', s=50, label="Closest Disk Point")
 

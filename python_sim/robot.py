@@ -18,11 +18,8 @@ class LiDAR:
         self.lidar_closest_point = np.array([0, 0])
 
     def simulate_lidar_measurement(self, accuracy):
-        # Рассчитываем стандартное отклонение шума
         noise_std = accuracy * self.lidar_distances
-        # Генерируем гауссовский шум
         noise = np.random.normal(0, noise_std, size=self.lidar_distances.shape)
-        # Возвращаем измерения с шумом
         self.lidar_distances += noise
 
     def sma(self, core):
@@ -62,7 +59,6 @@ class DubinsCar:
     mode_C = 0
     mode_G = 1
     goal = 0
-
 
     def __init__(self, linear_velocity, angular_velocity, turning_radius, d) -> None:
         self.linear_velocity = linear_velocity
@@ -161,6 +157,7 @@ class DubinsCar:
         self.lidar.closest_distance = np.min(self.lidar.lidar_distances)
         self.lidar.lidar_closest_point = self.lidar.lidar_points[np.argmin(self.lidar.lidar_distances)]            
 
+
     def update_disk_center(self):
         self.disk.disk_center = vec_ops.find_vector_with_dir(
             np.array([self.x, self.y]),
@@ -168,6 +165,7 @@ class DubinsCar:
             self.d + self.disk.R
         )
     
+
     def update_disk_rays(self):
         target_index = np.argmin(self.lidar.lidar_distances)
         start = target_index - 10
@@ -181,10 +179,6 @@ class DubinsCar:
         
         self.disk.min_disk_length = np.min(self.disk.disk_rays_lengths)
         self.disk.min_arg = np.argmin(self.disk.disk_rays_lengths)
-    
-
-    # def switch_global_mode(self):
-        
 
 
     def switch_mode_in_main(self):
@@ -203,7 +197,8 @@ class DubinsCar:
                     self.lidar.lidar_points[self.disk.min_arg],
                     np.array([self.x, self.y])):
                         self.state = self.mode_C
-    
+
+
     def calc_u_mode_C(self):
         r = np.array([self.x, self.y])
         p = self.lidar.lidar_closest_point
@@ -227,6 +222,7 @@ class DubinsCar:
         print(f'u={self.angular_velocity * sgn:>6}')
 
         return self.angular_velocity * sgn
+
 
     def calc_u_mode_G(self):
         r = np.array([self.x, self.y])
@@ -252,7 +248,9 @@ class DubinsCar:
 
         return self.angular_velocity * sgn
 
+
     def calculate_global_u(self):
+        self.theta = vec_ops.normalize_angle(self.theta)
         eps = 0.1
         phi = self.goal
         return self.angular_velocity * np.sign(phi - self.theta)
@@ -266,7 +264,8 @@ class DubinsCar:
         self.theta_path.append(self.theta)
         self.e = np.array([[np.cos(self.theta)], [np.sin(self.theta)]])
         self.e_path.append(self.e)
-    
+
+
     def calculate_u(self):
         if self.state_global == self.mode_First:
             self.u = self.calculate_global_u()
