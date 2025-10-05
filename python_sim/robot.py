@@ -21,6 +21,11 @@ class LiDAR:
         noise_std = accuracy * self.lidar_distances
         noise = np.random.normal(0, noise_std, size=self.lidar_distances.shape)
         self.lidar_distances += noise
+    
+    def simulate_lidar_measurement_const(self):
+        noise_std = 0.05
+        noise = np.random.normal(0, noise_std, size=self.lidar_distances.shape)
+        self.lidar_distances += noise
 
     def sma(self, core):
         filtered_data = np.zeros(
@@ -60,12 +65,14 @@ class DubinsCar:
     mode_G = 1
     goal = 0
 
-    def __init__(self, linear_velocity, angular_velocity, turning_radius, d) -> None:
-        self.linear_velocity = linear_velocity
+    def __init__(self, dt, linear_velocity_min, linear_velocity_max, angular_velocity, d, alpha) -> None:
+        self.dt = dt
+        self.t = -dt
+        self.linear_velocity = linear_velocity_max
         self.angular_velocity = angular_velocity
-        self.R_min = linear_velocity / angular_velocity
-        # self.turning_radius = turning_radius
-        self.turning_radius = self.R_min
+        self.R_max = linear_velocity_max / angular_velocity
+        self.v = linear_velocity_min + alpha * (linear_velocity_max - linear_velocity_min)
+        self.turning_radius = self.v / angular_velocity
         self.d = d
 
         self.x = 0
@@ -77,7 +84,7 @@ class DubinsCar:
         ])
         
         self.lidar = LiDAR(50, 360)
-        self.disk = TurningDisk(turning_radius, 360)
+        self.disk = TurningDisk(self.turning_radius, 360)
         
         self.state_global = self.mode_First
         self.state = self.mode_C
@@ -103,6 +110,9 @@ class DubinsCar:
         self.d_path = []
         self.r_path = []
 
+        # For dynamic obstacles for ddR
+        self.dR_last = 0
+
     
     def init_pose(self, init_x, init_y, init_theta):
         self.x = init_x
@@ -115,10 +125,15 @@ class DubinsCar:
         self.x_path = [init_x]
         self.y_path = [init_y]
         self.theta_path = [init_theta]
+        self.dR_last = self.lidar.closest_distance - self.d
     
-    def update_pose(self, dt):
-        self.x += self.linear_velocity * self.e[0][0] * dt
-        self.y += self.linear_velocity * self.e[1][0] * dt
+    def update_pose(self):
+        if self.state == self.mode_C:
+            self.x += self.linear_velocity * self.e[0][0] * self.dt
+            self.y += self.linear_velocity * self.e[1][0] * self.dt
+        else:
+            self.x += self.v * self.e[0][0] * self.dt
+            self.y += self.v * self.e[1][0] * self.dt
         # Store the path
         self.x_path.append(self.x)
         self.y_path.append(self.y)
@@ -133,9 +148,17 @@ class DubinsCar:
             self.lidar.lidar_points[i][0] = lidar_data_x
             self.lidar.lidar_points[i][1] = lidar_data_y
 
-            # Find intersection with obstacles
+            # Find intersection with obstacles (vectors)
+            # for obs in obstacles:
+            #     intersection = vec_ops.find_intersection(np.array([[self.x, self.y], [lidar_data_x, lidar_data_y]]), obs)
+
+            #     if (intersection is not None) and (np.linalg.norm(intersection-[self.x, self.y]) < np.linalg.norm(self.lidar.lidar_points[i]-[self.x, self.y])):  #!!!!!!!!!!!!!!!!
+            #         self.lidar.lidar_points[i][0] = intersection[0]
+            #         self.lidar.lidar_points[i][1] = intersection[1]
+
+            # Find intersection with obstacles (vectors)
             for obs in obstacles:
-                intersection = vec_ops.find_intersection(np.array([[self.x, self.y], [lidar_data_x, lidar_data_y]]), obs)
+                intersection = vec_ops.find_intersection_vector_ellipse_rot(np.array([[self.x, self.y], [lidar_data_x, lidar_data_y]]), obs)
 
                 if (intersection is not None) and (np.linalg.norm(intersection-[self.x, self.y]) < np.linalg.norm(self.lidar.lidar_points[i]-[self.x, self.y])):  #!!!!!!!!!!!!!!!!
                     self.lidar.lidar_points[i][0] = intersection[0]
@@ -145,13 +168,8 @@ class DubinsCar:
             self.lidar.lidar_distances[i] = np.linalg.norm(self.lidar.lidar_points[i] - [self.x, self.y])
         
         # Add noise
-        self.lidar.simulate_lidar_measurement(0.02)
-        # print(self.lidar.lidar_distances)
-
-        # Filter lidar data
-        core = 3
-        # self.lidar.lidar_distances = self.lidar.sma(core)
-        # print(self.lidar.lidar_distances)
+        # self.lidar.simulate_lidar_measurement(0.01)
+        self.lidar.simulate_lidar_measurement_const()
         
         # Update closest params
         self.lidar.closest_distance = np.min(self.lidar.lidar_distances)
@@ -183,7 +201,7 @@ class DubinsCar:
 
     def switch_mode_in_main(self):
         if self.state_global == self.mode_First:
-            if self.lidar.closest_distance < (self.d + 1.2 * self.R_min):
+            if self.lidar.closest_distance < (self.d + 1.0 * self.R_max):
                 self.state_global = self.mode_Main
         else:
             if self.state == self.mode_C:
@@ -204,6 +222,9 @@ class DubinsCar:
         p = self.lidar.lidar_closest_point
         dR = self.lidar.closest_distance - self.d
         ddR = self.linear_velocity * (((r-p) / np.linalg.norm(r-p)) @ self.e)[0]
+        # ddR = (dR - self.dR_last) / self.dt
+        self.dR_last = dR
+
         sat = vec_ops.saturation(dR, -0.1, 0.1)
         second_part = self.n * 0.025 * sat
         sgn = np.sign(ddR + second_part)
@@ -227,8 +248,12 @@ class DubinsCar:
     def calc_u_mode_G(self):
         r = np.array([self.x, self.y])
         v = self.v_A
-        dR = self.turning_radius - np.linalg.norm(r - v)
-        ddR = self.linear_velocity * (((v-r) / np.linalg.norm(v-r)) @ self.e)[0]
+        turning_radius = self.v / self.angular_velocity
+        dR = turning_radius - np.linalg.norm(r - v)
+        ddR = self.v * (((v-r) / np.linalg.norm(v-r)) @ self.e)[0]
+        # ddR = (dR - self.dR_last) / self.dt
+        self.dR_last = dR
+        
         sat = vec_ops.saturation(dR, -0.1, 0.1)
         second_part = self.n * 0.025 * sat
         sgn = np.sign(ddR + second_part)
@@ -251,16 +276,19 @@ class DubinsCar:
 
     def calculate_global_u(self):
         self.theta = vec_ops.normalize_angle(self.theta)
-        eps = 0.1
         phi = self.goal
+
+        dR = self.lidar.closest_distance - self.d
+        self.dR_path.append(float(dR))
+
         return self.angular_velocity * np.sign(phi - self.theta)
 
 
-    def update_orientation(self, dt):
+    def update_orientation(self):
         self.u_path.append(self.u)
         self.mode_path.append("C" if self.state == self.mode_C else "G")
-        # self.theta -= self.u * dt
-        self.theta += self.u * dt
+        self.theta -= self.u * self.dt
+        # self.theta += self.u * dt
         self.theta_path.append(self.theta)
         self.e = np.array([[np.cos(self.theta)], [np.sin(self.theta)]])
         self.e_path.append(self.e)

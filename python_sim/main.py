@@ -4,7 +4,7 @@ import time as TIME
 import matplotlib.pyplot as plt
 
 from robot import *
-from vector_operations import find_vector_with_dir
+
 
 def calculate_arc_points(start, end, center, radius, num_points=100):
     start = np.array(start, dtype=np.float64)
@@ -53,8 +53,6 @@ def calculate_rotation_angle(theta_robot, theta_target_local):
 
 
 
-
-
 # # Obstacles and equidistant 1
 # obs_1 = np.array([[50, 10], [50, 65]], dtype=np.float32)
 # obs_2 = np.array([[50, 65], [0, 65]], dtype=np.float32)
@@ -81,16 +79,16 @@ def calculate_rotation_angle(theta_robot, theta_target_local):
 # obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5, obs_6, obs_7, obs_8])
 
 
-obs_1 = np.array([[0, 60],  [0, 10]], dtype=np.float32)
-obs_2 = np.array([[0, 10],   [50, 10]], dtype=np.float32)
-obs_3 = np.array([[50, 10], [10, 35]], dtype=np.float32)
-obs_4 = np.array([[10, 35], [50, 60]], dtype=np.float32)
-# obs_4 = np.array([[50, 30], [10, 30]], dtype=np.float32)
-# obs_5 = np.array([[10, 30], [10, 40]], dtype=np.float32)
-# obs_6 = np.array([[10, 40], [50, 40]], dtype=np.float32)
-# obs_7 = np.array([[50, 40], [50, 60]], dtype=np.float32)
-obs_5 = np.array([[50, 60], [0, 60]], dtype=np.float32)
-obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5])
+# obs_1 = np.array([[0, 60],  [0, 10]], dtype=np.float32)
+# obs_2 = np.array([[0, 10],   [50, 10]], dtype=np.float32)
+# obs_3 = np.array([[50, 10], [10, 35]], dtype=np.float32)
+# obs_4 = np.array([[10, 35], [50, 60]], dtype=np.float32)
+# # obs_4 = np.array([[50, 30], [10, 30]], dtype=np.float32)
+# # obs_5 = np.array([[10, 30], [10, 40]], dtype=np.float32)
+# # obs_6 = np.array([[10, 40], [50, 40]], dtype=np.float32)
+# # obs_7 = np.array([[50, 40], [50, 60]], dtype=np.float32)
+# obs_5 = np.array([[50, 60], [0, 60]], dtype=np.float32)
+# obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5])
 
 
 
@@ -356,6 +354,58 @@ obstacles = np.array([obs_1, obs_2, obs_3, obs_4, obs_5])
 # equidistants = np.array([equid_1, equid_2])
 
 
+# Texture obstacles squares
+# w = 5
+# h = 1
+# T = 10
+# num_obstacles = 5
+
+# def create_obstacle(y_start, w, h, T):
+#     obs_1 = np.array([[0, y_start], [w, y_start]], dtype=np.float32)
+#     obs_2 = np.array([[w, y_start], [w, y_start + h]], dtype=np.float32)
+#     obs_3 = np.array([[w, y_start + h], [0, y_start + h]], dtype=np.float32)
+#     obs_4 = np.array([[0, y_start + h], [0, y_start + h + T]], dtype=np.float32)
+#     return np.array([obs_1, obs_2, obs_3, obs_4])
+
+# obstacles = []
+# y_start = 0
+# for i in range(num_obstacles):
+#     tmp = create_obstacle(y_start, w, h, T)
+#     obstacles.extend(tmp)
+#     y_start += h + T
+
+
+# Texture obstacles rectangles
+# w = 1
+# h = 5
+# T = 0.1
+
+# num_obstacles = 30
+
+# def create_triangle(y_start, w, h, T):
+#     obs_1 = np.array([[0, y_start], [h, y_start + w / 2]], dtype=np.float32)
+#     obs_2 = np.array([[h, y_start + w / 2], [0, y_start + w]], dtype=np.float32)
+#     obs_3 = np.array([[0, y_start + w], [0, y_start + w + T]], dtype=np.float32)
+#     return np.array([obs_1, obs_2, obs_3])
+
+# obstacles = []
+# y_start = 0
+# for i in range(num_obstacles):
+#     tmp = create_triangle(y_start, w, h, T)
+#     obstacles.extend(tmp)
+#     y_start += w + T\
+
+
+# Testing linear speed regulator
+obs_1 = np.array([[50, 0], [50, 50]], dtype=np.float32)
+# obs_2 = np.array([[50, 50], [0, 50]], dtype=np.float32)
+# equid_1 = np.array([[60, 0], [60, 50]], dtype=np.float32)
+# arc_1 = calculate_arc_points([50, 60], [60, 50], [50, 50], 10)
+# equid_2 = np.array([[50, 60], [0, 60]], dtype=np.float32)
+# obstacles = np.array([obs_1, obs_2])
+# equidistants = np.array([equid_1, equid_2])
+
+
 def plot_obstacles(obstacles):
     for obstacle in obstacles:
         plt.plot([obstacle[0][0], obstacle[1][0]], [obstacle[0][1], obstacle[1][1]], color='black')
@@ -366,21 +416,125 @@ def plot_equidistants(equidistants):
         plt.plot([equidistant[0][0], equidistant[1][0]], [equidistant[0][1], equidistant[1][1]], color='blue', zorder=1)
 
 
+def drawing_ellips(x0=0.0, y0=0.0, a=1.0, b=1.0, theta=0.0):
+    t = np.linspace(0, 2*np.pi, 100)
+    c = np.array([
+        [x0],
+        [y0],
+    ])
+    vec = np.array([
+        a * np.cos(t),
+        b * np.sin(t),
+    ])
+    rot = np.array([
+        [np.cos(theta), -np.sin(theta)],
+        [np.sin(theta), np.cos(theta)],
+    ])
+    rot_vec = rot @ vec + c
+    plt.plot(rot_vec[0], rot_vec[1], c='black', zorder=2)
+    plt.axis('equal')
+
+
+def draw_equidistant_from_ellipse_data(ellipse_data, d=1.0, num_points=500):
+    x0, y0, a, b, theta = ellipse_data
+    t = np.linspace(0, 2 * np.pi, num_points)
+
+    x_ellipse = x0 + a * np.cos(t)
+    y_ellipse = y0 + b * np.sin(t)
+
+    dx = -a * np.sin(t)
+    dy = b * np.cos(t)
+
+    nx = dy
+    ny = -dx
+
+    norm = np.hypot(nx, ny)
+    nx /= norm
+    ny /= norm
+
+    x_eq = x_ellipse + d * nx
+    y_eq = y_ellipse + d * ny
+
+    if theta != 0:
+        cos_t = np.cos(theta)
+        sin_t = np.sin(theta)
+
+        def rotate(x, y):
+            x_new = (x - x0) * cos_t - (y - y0) * sin_t + x0
+            y_new = (x - x0) * sin_t + (y - y0) * cos_t + y0
+            return x_new, y_new
+
+        x_ellipse, y_ellipse = rotate(x_ellipse, y_ellipse)
+        x_eq, y_eq = rotate(x_eq, y_eq)
+
+    plt.plot(x_eq, y_eq, c='blue', linestyle='-', zorder=1)
+    plt.axis('equal')
+
+
 start_time = TIME.time()
 
-
 dt = 1                             # Time step
-time_end = 400                    # Simulation time
+time_end = 10000                       # Simulation time
 time = np.arange(0, time_end, dt)  # Total simulation time
-d = 8                              # Distance from equididstant to objects
+d = 5                             # Distance from equididstant to objects
+alpha = 0
 
-robot = DubinsCar(0.1, 0.02, 5, d)
-robot.init_pose(70, 0, np.pi)
+robot = DubinsCar(dt, 0.1, 0.1, 0.02, d, alpha)
+robot.init_pose(120, 0, -np.pi)
+
+# Groups of dynamic obstacles
+eps_1 = [0, 0, 60, 10, 0]
+eps_2 = [0, 0, 60, 10, -np.pi/2]
+# eps_1 = [0, 0, 60, 10, 0]
+eps_2 = [-50, 50, 60, 10, np.pi/3.4]
+eps_3 = [50, 50, 60, 10, -np.pi/3.4]
+
+eps_1_x = [0]
+eps_1_y = [0]
+eps_1_rot = [0]
+
+eps_2_x = [eps_2[0]]
+eps_2_y = [eps_2[1]]
+eps_2_rot = [eps_2[-1]]
+
+eps_3_x = [eps_3[0]]
+eps_3_y = [eps_3[1]]
+eps_3_rot = [eps_3[-1]]
+
+
+obs_1 = [0, 0, 60, 10, 0]
+obs_2 = [-50, 50, 60, 10, np.pi/3.4]
+obs_3 = [50, 50, 60, 10, -np.pi/3.4]
+
 
 # Simulate
 for t in time:
+    robot.t += robot.dt
+    
+    # For dynamic obstacles
+    # eps_1[0] = -t * 0.005
+    # eps_1[1] = t * 0.005
+    # eps_1[-1] = t * 0.0005
+
+    # eps_2[0] = eps_2_x[0] - t * 0.005
+    # eps_2[1] = eps_2_y[0] + t * 0.005
+    # eps_2[-1] = eps_2_rot[0] - t * 0.0005
+
+    eps_1_x.append(eps_1[0])
+    eps_1_y.append(eps_1[1])
+    eps_1_rot.append(eps_1[-1])
+    eps_2_x.append(eps_2[0])
+    eps_2_y.append(eps_2[1])
+    eps_2_rot.append(eps_2[-1])
+    eps_3_x.append(eps_3[0])
+    eps_3_y.append(eps_3[1])
+    eps_3_rot.append(eps_3[-1])
+
+    obstacles = np.array([eps_1, eps_2, eps_3])
+    # obstacles = np.array([obs_1, obs_2, obs_3])
+
     # Update position based on Dubins car kinematics
-    robot.update_pose(dt)
+    robot.update_pose()
     # LiDAR scan
     robot.lidar_scan(obstacles)
     if t == 0:
@@ -388,9 +542,9 @@ for t in time:
         # delta = azimuth - robot.theta
         robot.goal = calculate_rotation_angle(robot.theta, azimuth)
         # robot.goal = azimuth - robot.theta
-        print(f'orientation: {robot.theta}')
-        print(f'azimuth: {azimuth}')
-        print(robot.goal)
+        # print(f'orientation: {robot.theta}')
+        # print(f'azimuth: {azimuth}')
+        # print(robot.goal)
         # robot.goal = np.arctan2(robot.lidar.lidar_closest_point[1]-robot.y, robot.lidar.lidar_closest_point[0]-robot.x)
 
     # Update disk rays
@@ -406,24 +560,35 @@ for t in time:
     robot.calculate_u()
     # robot.calculate_global_u()
     print(robot.u)
-    robot.update_orientation(dt)
+    robot.update_orientation()
 
-    print(f'{t} / {time_end}')
+    print(f'{t} / {time_end}') 
 
 
 stop_time = TIME.time()
 print((stop_time-start_time) / 60)
 
 def plotting_results():
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
+
     # Plot the Dubins car path
     plt.plot(robot.x_path, robot.y_path, label="Dubins Car Path", color='red', zorder=2)
     plt.scatter(robot.x_path[0], robot.y_path[0], color='black', s=70, label="start point", zorder=3)
     plt.scatter(robot.x_path[-1], robot.y_path[-1], color='green', s=250, label="end point", marker='*', zorder=3)
 
     # Plot obstacles
-    plot_obstacles(obstacles)
+    # plot_obstacles(obstacles)
     # plot_equidistants(equidistants)
+
+    # Plot ellips
+    drawing_ellips(*eps_1)
+    drawing_ellips(*eps_2)
+    drawing_ellips(*obs_3)
+
+    draw_equidistant_from_ellipse_data(eps_1, d)
+    draw_equidistant_from_ellipse_data(eps_2, d)
+    draw_equidistant_from_ellipse_data(obs_3, d)
+
     
     # plt.plot(arc_1[:, 0], arc_1[:, 1], color='blue', zorder=1)
     # plt.plot(arc_2[:, 0], arc_2[:, 1], color='blue', zorder=1)
@@ -455,9 +620,9 @@ def plotting_results():
     # print(robot.lidar.lidar_closest_point)
     
     # Plot closest point and circle center
-    # disk = plt.Circle(robot.disk.disk_center, robot.R_min, color='orange', fill=False, linewidth=1)
+    # disk = plt.Circle(robot.disk.disk_center, robot.R_max, color='orange', fill=False, linewidth=1)
     # ax.add_patch(disk)
-    plt.scatter(robot.lidar.lidar_closest_point[0], robot.lidar.lidar_closest_point[1], color='brown', s=50, label="Closest Robot Point")
+    # plt.scatter(robot.lidar.lidar_closest_point[0], robot.lidar.lidar_closest_point[1], color='brown', s=50, label="Closest Robot Point")
     # plt.plot([robot.disk.disk_center[0], robot.lidar.lidar_points[robot.disk.min_arg][0]], [robot.disk.disk_center[1], robot.lidar.lidar_points[robot.disk.min_arg][1]], color='orange', label="Disk Center")
     # plt.scatter(robot.lidar.lidar_points[robot.disk.min_arg][0], robot.lidar.lidar_points[robot.disk.min_arg][1], color='orange', s=50, label="Closest Disk Point")
 
@@ -477,7 +642,7 @@ def plotting_results():
     plt.xlabel("x")
     plt.ylabel("y")
     # plt.title("Dubins Car Path with Simulated LiDAR and Obstacles")
-    plt.axis("equal")
+    plt.axis('equal')
     # plt.legend()
     plt.grid(True)
     plt.show()
@@ -485,24 +650,36 @@ def plotting_results():
 
 plotting_results()
 
+# print(len(robot.x_path))
 # Данные для записи
 robot_data = {
+    "t": time_end,
     "x": robot.x_path,
     "y": robot.y_path,
-    "theta": robot.theta_path,
-    "mode": robot.mode_path,
+    "eps_1_x": eps_1_x, 
+    "eps_1_y": eps_1_y,
+    "eps_1_rot": eps_1_rot,
+    "eps_2_x": eps_2_x, 
+    "eps_2_y": eps_2_y,
+    "eps_2_rot": eps_2_rot,
+    "eps_3_x": eps_3_x, 
+    "eps_3_y": eps_3_y,
+    "eps_3_rot": eps_3_rot,
+    # "eq_1_x": eq_1_x,
+    # "eq_1_y": eq_1_y,
+    # "theta": robot.theta_path,
+    # "mode": robot.mode_path,
     "dR": robot.dR_path,
-    "ddR": robot.ddR_path,
-    "saturation": robot.sat_path,
-    "second_part": robot.second_part_path,
-    "sgn": robot.sgn_path,
-    "u": robot.u_path,
-    "d(t)": robot.d_path,
-    "r": robot.r_path,
-    "p": robot.p_path,
-    "v(A)": robot.vA_path
+    # "ddR": robot.ddR_path,
+    # "saturation": robot.sat_path,
+    # "second_part": robot.second_part_path,
+    # "sgn": robot.sgn_path,
+    # "u": robot.u_path,
+    # "d(t)": robot.d_path,
+    # "r": robot.r_path,
+    # "p": robot.p_path,
+    # "v(A)": robot.vA_path
 }
 
-# Запись данных в файл
-with open(f"robot_data.json", "w") as json_file:
-    json.dump(robot_data, json_file, indent=4)  # indent=4 делает вывод красивым
+with open(f"robot_data_dynamic.json", "w") as json_file:
+    json.dump(robot_data, json_file, indent=4)
