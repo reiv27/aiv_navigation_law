@@ -5,16 +5,18 @@ import matplotlib.animation as animation
 import time as TIME
 
 plt.rcParams.update({
-    'font.size': 14,
-    'axes.titlesize': 18,
-    'axes.labelsize': 18,
-    'xtick.labelsize': 14,
-    'ytick.labelsize': 14,
-    'legend.fontsize': 12,
-    'figure.titlesize': 18,
+    'font.size': 16,
+    'axes.titlesize': 24,
+    'axes.labelsize': 20,
+    'xtick.labelsize': 16,
+    'ytick.labelsize': 16,
+    'legend.fontsize': 16,
+    'figure.titlesize': 30,
+    'font.weight': 'normal',
+    'axes.labelweight': 'bold',
+    'axes.titleweight': 'bold',
 })
 
-# Загрузка данных из JSON файла
 with open('data/robot_data_dynamic_2obs_noise_2.json', 'r', encoding='utf-8') as json_file:
     data = json.load(json_file)
 
@@ -24,7 +26,6 @@ print(len(t_list))
 robot_x = data["x"][1:time_end]
 robot_y = data["y"][1:time_end]
 
-# Данные для эллипсов
 eps_1_x = data["eps_1_x"][1:time_end]
 eps_1_y = data["eps_1_y"][1:time_end]
 eps_1_rot = data["eps_1_rot"][1:time_end]
@@ -35,10 +36,9 @@ eps_3_x = data["eps_3_x"][1:time_end]
 eps_3_y = data["eps_3_y"][1:time_end]
 eps_3_rot = data["eps_3_rot"][1:time_end]
 
-# Параметры эллипсов
-a1, b1 = 60, 10    # Первый эллипс
-a2, b2 = 60, 10    # Второй эллипс
-a3, b3 = 60, 10    # Третий эллипс
+a1, b1 = 60, 10
+a2, b2 = 60, 10
+a3, b3 = 60, 10
 
 def get_ellipse_points(x0, y0, a, b, theta):
     t_vals = np.linspace(0, 2 * np.pi, 100)
@@ -83,13 +83,11 @@ def get_equidistant_points(ellipse_data, d=1.0, num_points=500):
 
     return x_eq, y_eq
 
-# Создание фигуры и осей
 fig, ax = plt.subplots(figsize=(16, 9), dpi=150)
 
-# Линии для эллипсов
 ellipse1_line, = ax.plot([], [], color='black', linestyle='-', lw=2, label='Obstacles')
 ellipse1_center, = ax.plot([], [], 'k+', markersize=6)
-ellipse1_path, = ax.plot([], [], 'k--', lw=1, alpha=0.3, label='Obstacles\' Paths')
+ellipse1_path, = ax.plot([], [], 'k--', lw=1, alpha=0.3)
 
 ellipse2_line, = ax.plot([], [], color='black', linestyle='-', lw=2)
 ellipse2_center, = ax.plot([], [], 'k+', markersize=6)
@@ -99,24 +97,21 @@ ellipse2_path, = ax.plot([], [], 'k--', lw=1, alpha=0.3)
 # ellipse3_center, = ax.plot([], [], 'k+', markersize=6)
 # ellipse3_path, = ax.plot([], [], 'k--', lw=1, alpha=0.3)
 
-# Линии для эквидистант
 equidist1_line, = ax.plot([], [], 'b--', lw=1.0, label='Equidistant')
 equidist2_line, = ax.plot([], [], 'b--', lw=1.0)
 # equidist3_line, = ax.plot([], [], 'b--', lw=1.5)
 
-# Линии для робота
 robot_path_line, = ax.plot([], [], 'r-', lw=1.5, alpha=0.7, label='Robot Path', zorder=2)
 robot_point, = ax.plot([], [], 'g*', markersize=10, label='Robot Pose', zorder=3)
 robot_start_point, = ax.plot([], [], 'ko', markersize=3, label='Start', zorder=3)
 
-ax.set_xlabel(r"$x, m$")
-ax.set_ylabel(r"$y, m$")
-ax.set_title("Modeling with Two Dynamic Obstacles")
-ax.legend()
+ax.set_xlabel(r"$x$")
+ax.set_ylabel(r"$y$")
+# ax.set_title("Scenario 2")
+# ax.legend()
 ax.grid(True)
 ax.set_aspect('equal', 'box')
 
-# Вычисляем общие границы для всех кадров заранее
 all_ellipse1_points_x = []
 all_ellipse1_points_y = []
 all_ellipse2_points_x = []
@@ -157,6 +152,95 @@ y_min, y_max = min(all_y) - padding - add_pad, max(all_y) + padding + add_pad
 ax.set_xlim(x_min, x_max)
 ax.set_ylim(y_min, y_max)
 ax.set_aspect('equal', 'box')
+
+def get_static_frame(t):
+    """
+    Получить статический фрейм анимации в момент времени t
+    
+    Args:
+        t (int): Время в миллисекундах или индексе кадра
+        
+    Returns:
+        matplotlib.figure.Figure: Фигура с отрисованным фреймом
+    """
+    # Если t больше максимального времени, используем последний кадр
+    frame = min(t, len(robot_x) - 1)
+    
+    # Создаем новую фигуру для статического фрейма
+    fig_static, ax_static = plt.subplots(figsize=(16, 9), dpi=150)
+    
+    # Настройки шрифтов для статического фрейма
+    ax_static.tick_params(axis='both', which='major', labelsize=20)
+    ax_static.tick_params(axis='both', which='minor', labelsize=20)
+    
+    # Устанавливаем границы и настройки
+    ax_static.set_xlim(x_min, x_max)
+    ax_static.set_ylim(y_min, y_max)
+    ax_static.set_aspect('equal', 'box')
+    ax_static.grid(True)
+    
+    # === Эллипс 1 ===
+    x1, y1 = eps_1_x[frame], eps_1_y[frame]
+    angle1 = eps_1_rot[frame]
+    ex1, ey1 = get_ellipse_points(x1, y1, a1, b1, angle1)
+    ax_static.plot(ex1, ey1, color='black', linestyle='-', lw=2, label='Obstacles')
+    ax_static.plot(x1, y1, 'k+', markersize=6)
+    ax_static.plot(eps_1_x[:frame+1], eps_1_y[:frame+1], 'k--', lw=1, alpha=0.3, label='Obstacles\' Paths')
+    
+    # Эквидистанта 1
+    ellipse_data1 = (x1, y1, a1, b1, angle1)
+    eqx1, eqy1 = get_equidistant_points(ellipse_data1, d=10)
+    ax_static.plot(eqx1, eqy1, 'b--', lw=1.0, label='Equidistant')
+    
+    # === Эллипс 2 ===
+    x2, y2 = eps_2_x[frame], eps_2_y[frame]
+    angle2 = eps_2_rot[frame]
+    ex2, ey2 = get_ellipse_points(x2, y2, a2, b2, angle2)
+    ax_static.plot(ex2, ey2, color='black', linestyle='-', lw=2)
+    ax_static.plot(x2, y2, 'k+', markersize=6)
+    ax_static.plot(eps_2_x[:frame+1], eps_2_y[:frame+1], 'k--', lw=1, alpha=0.3)
+    
+    # Эквидистанта 2
+    ellipse_data2 = (x2, y2, a2, b2, angle2)
+    eqx2, eqy2 = get_equidistant_points(ellipse_data2, d=10)
+    ax_static.plot(eqx2, eqy2, 'b--', lw=1.0)
+    
+    # === Робот ===
+    rx = robot_x[:frame+1]
+    ry = robot_y[:frame+1]
+    ax_static.plot(rx, ry, 'r-', lw=1.5, alpha=0.7, label='Robot Path', zorder=2)
+    ax_static.plot(robot_x[frame], robot_y[frame], 'g*', markersize=10, label='Robot Pose', zorder=3)
+    ax_static.plot(robot_x[0], robot_y[0], 'ko', markersize=3, label='Start', zorder=3)
+    
+    # Добавляем текстовую информацию в правом верхнем углу
+    info_text = f'Time: t = {frame*0.01} s\nCoordinates: x, y [m]'
+    ax_static.text(0.98, 0.98, info_text, transform=ax_static.transAxes, 
+                   fontsize=25, verticalalignment='top', horizontalalignment='right',
+                   bbox=dict(boxstyle='round', facecolor='white', edgecolor='black', alpha=0.9))
+    
+    return fig_static
+
+def save_static_frame(t, filename=None):
+    """
+    Сохранить статический фрейм в файл
+    
+    Args:
+        t (int): Время в миллисекундах или индексе кадра
+        filename (str): Имя файла для сохранения. Если None, генерируется автоматически
+    """
+    frame = min(t, len(robot_x) - 1)
+    
+    if filename is None:
+        filename = f'static_frame_t{frame}.svg'
+    
+    # Получаем фрейм
+    fig_static = get_static_frame(t)
+    
+    # Сохраняем
+    fig_static.savefig(filename, dpi=150, bbox_inches='tight', format='svg')
+    print(f"Static frame saved as {filename}")
+    
+    return fig_static
 
 # Функция init для анимации
 def init():
@@ -244,24 +328,9 @@ def update(frame):
         equidist1_line, equidist2_line#, equidist3_line
     )
 
-# Создание анимации
-ani = animation.FuncAnimation(
-    fig,
-    update,
-    frames=len(robot_x),
-    init_func=init,
-    blit=True,
-    interval=50,
-    repeat=False
-)
+times = [100, 1300, 2700]
 
-# Сохранение анимации в виде MP4
-from matplotlib.animation import writers
-print(writers.list())
-start_time = TIME.time()
-ani.save('dynamic_2obs_noise_2_scenario_final.mp4', writer='ffmpeg', fps=60, dpi=150)
-stop_time = TIME.time()
-print(f"Animation saved in {(stop_time-start_time)/60:.2f} minutes")
-
-# Отображение графика
-plt.show()  
+for t in times:
+    static_frame = get_static_frame(t)
+    print("Saving static frame...")
+    save_static_frame(t, f'results/frame_{t*0.01}.svg')
